@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Assistant | Smart Learning Companion for Students</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="theme-light">
+    <!-- Mobile Navigation Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <div class="logo-icon">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h2>StudyGenie</h2>
+                        <span class="badge-ai">AI Assistant</span>
+                    </div>
+                </div>
+                <button id="closeSidebarBtn" class="close-sidebar-btn" aria-label="Close Sidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">LEARNING TOOLS</div>
+                <ul class="nav-list">
+                    <li>
+                        <button class="nav-btn active" data-target="panel-chat">
+                            <i class="fa-solid fa-comments"></i>
+                            <span>AI Study Chat</span>
+                            <span class="nav-tag">Live</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-btn" data-target="panel-notes">
+                            <i class="fa-solid fa-book-open"></i>
+                            <span>Notes Generator</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-btn" data-target="panel-summarize">
+                            <i class="fa-solid fa-compress"></i>
+                            <span>Topic Summarizer</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-btn" data-target="panel-mcq">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>MCQ Generator</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-btn" data-target="panel-quiz">
+                            <i class="fa-solid fa-circle-question"></i>
+                            <span>Practice Quiz</span>
+                            <span class="nav-tag tag-purple">Interactive</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="nav-btn" data-target="panel-explain">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Simple Explanation</span>
+                            <span class="nav-tag tag-amber">ELI5</span>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar Footer Status Card -->
+            <div class="sidebar-footer">
+                <div class="api-status-box" id="apiStatusBox">
+                    <div class="status-indicator">
+                        <span class="status-dot" id="apiStatusDot"></span>
+                        <span class="status-label" id="apiStatusLabel">Checking API...</span>
+                    </div>
+                    <button class="btn-config-key" id="openApiKeyModalBtn" title="Configure or update Gemini API key">
+                        <i class="fa-solid fa-key"></i> Key Settings
+                    </button>
+                </div>
+                <div class="creator-note">
+                    <small>Powered by Google Gemini</small>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="navbar-left">
+                    <button id="mobileMenuToggle" class="mobile-menu-btn" aria-label="Toggle Navigation">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="current-module-info">
+                        <h1 id="activePanelTitle">AI Study Chat</h1>
+                        <p id="activePanelSubtitle">Ask questions, clarify doubts, and explore complex topics step-by-step.</p>
+                    </div>
+                </div>
+
+                <div class="navbar-right">
+                    <button id="themeToggleBtn" class="action-circle-btn" title="Toggle Dark/Light Mode">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                    <button id="quickHelpBtn" class="action-circle-btn" title="How to use & Shortcuts">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Global Toast Notification Area -->
+            <div id="toastNotification" class="toast-notification"></div>
+
+            <!-- Global API Key Warning Banner (Shown if API Key is not set) -->
+            <div id="apiKeyBanner" class="api-key-banner hidden">
+                <div class="banner-content">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div class="banner-text">
+                        <strong>Gemini API Key Required:</strong> Add <code>GEMINI_API_KEY</code> to your <code>.env</code> file or click below to configure your key to start generating responses.
+                    </div>
+                </div>
+                <div class="banner-actions">
+                    <button id="bannerSetupKeyBtn" class="btn btn-sm btn-light">Configure Key</button>
+                    <button id="dismissBannerBtn" class="btn btn-sm btn-icon"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+
+            <div class="panels-container">
+                <!-- ================= FEATURE 1: AI STUDY CHAT ================= -->
+                <section id="panel-chat" class="feature-panel active">
+                    <div class="chat-container">
+                        <!-- Chat Message History -->
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant-message">
+                                <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+                                <div class="msg-body">
+                                    <div class="msg-sender">StudyGenie AI</div>
+                                    <div class="msg-content markdown-output">
+                                        <p>Hello! 👋 I'm your <strong>AI Study Assistant</strong>. What topic, homework question, or concept would you like help with today?</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Chat Suggestions -->
+                        <div class="chat-quick-suggestions">
+                            <span class="suggestion-label"><i class="fa-solid fa-bolt"></i> Try asking:</span>
+                            <button class="chip-suggestion" data-prompt="Explain how photosynthesis converts sunlight into chemical energy.">🌿 Photosynthesis Process</button>
+                            <button class="chip-suggestion" data-prompt="What is the difference between speed, velocity, and acceleration with examples?">🏎️ Speed vs Velocity</button>
+                            <button class="chip-suggestion" data-prompt="Give me a simple guide to understanding derivatives in calculus.">📐 Calculus Derivatives</button>
+                            <button class="chip-suggestion" data-prompt="Explain the causes that led to World War I.">🌍 Causes of WWI</button>
+                        </div>
+
+                        <!-- Chat Input Box -->
+                        <div class="chat-input-wrapper">
+                            <form id="chatForm" class="chat-form">
+                                <div class="input-actions-bar">
+                                    <button type="button" id="clearChatBtn" class="btn-text-subtle" title="Clear conversation history">
+                                        <i class="fa-solid fa-trash-can"></i> Clear Chat
+                                    </button>
+                                </div>
+                                <div class="input-row">
+                                    <textarea id="chatInput" rows="2" placeholder="Ask a study question or paste a problem... (Press Enter to send, Shift+Enter for new line)" required></textarea>
+                                    <button type="submit" id="chatSendBtn" class="btn btn-primary btn-send">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                        <span>Send</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= FEATURE 2: NOTES GENERATOR ================= -->
+                <section id="panel-notes" class="feature-panel">
+                    <div class="two-column-grid">
+                        <!-- Configuration Form Card -->
+                        <div class="card form-card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-pen-fancy card-icon text-indigo"></i>
+                                    <h3>Study Notes Setup</h3>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form id="notesForm">
+                                    <div class="form-group">
+                                        <label for="notesTopic">Study Topic or Concept <span class="required">*</span></label>
+                                        <input type="text" id="notesTopic" class="form-control" placeholder="e.g. Mitosis & Cell Division, Theory of Relativity, Supply & Demand" required>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-6">
+                                            <label for="notesSubject">Subject Area</label>
+                                            <select id="notesSubject" class="form-control">
+                                                <option value="General Science">General Science</option>
+                                                <option value="Biology & Medicine">Biology & Medicine</option>
+                                                <option value="Physics">Physics</option>
+                                                <option value="Chemistry">Chemistry</option>
+                                                <option value="Mathematics">Mathematics</option>
+                                                <option value="Computer Science & Coding">Computer Science & Coding</option>
+                                                <option value="History & Social Studies">History & Social Studies</option>
+                                                <option value="Economics & Business">Economics & Business</option>
+                                                <option value="Literature & Philosophy">Literature & Philosophy</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="notesLevel">Target Level</label>
+                                            <select id="notesLevel" class="form-control">
+                                                <option value="Middle School">Middle School</option>
+                                                <option value="High School / AP" selected>High School / AP</option>
+                                                <option value="College / University">College / University</option>
+                                                <option value="Advanced / Graduate">Advanced / Graduate</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="notesStyle">Note-Taking Format</label>
+                                        <select id="notesStyle" class="form-control">
+                                            <option value="Comprehensive Mastery" selected>Comprehensive Mastery (Definitions, In-depth, Examples)</option>
+                                            <option value="Cornell Notes Structure">Cornell Notes (Cues, Main Notes, Summary)</option>
+                                            <option value="Exam Revision Cheat Sheet">Exam Revision Cheat Sheet (High-Yield Bullets)</option>
+                                            <option value="Formulas & Practical Rules">Formulas, Theorems & Step-by-Step Rules</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Quick Topic Starters -->
+                                    <div class="quick-tags-container">
+                                        <span class="quick-tags-label">Popular Topics:</span>
+                                        <div class="tags-list">
+                                            <button type="button" class="tag-pill" data-fill="notesTopic" data-val="Photosynthesis & Cellular Respiration">Photosynthesis</button>
+                                            <button type="button" class="tag-pill" data-fill="notesTopic" data-val="Newton's Three Laws of Motion">Newton's Laws</button>
+                                            <button type="button" class="tag-pill" data-fill="notesTopic" data-val="Data Structures: Arrays vs Linked Lists">Data Structures</button>
+                                            <button type="button" class="tag-pill" data-fill="notesTopic" data-val="Key Causes and Effects of the French Revolution">French Revolution</button>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" id="generateNotesBtn" class="btn btn-primary btn-block">
+                                        <i class="fa-solid fa-sparkles"></i> Generate Study Notes
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Result Card -->
+                        <div class="card result-card">
+                            <div class="card-header result-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-file-lines card-icon text-indigo"></i>
+                                    <h3 id="notesResultTitle">Generated Notes</h3>
+                                </div>
+                                <div class="action-buttons-group">
+                                    <button class="btn-action" id="copyNotesBtn" title="Copy to clipboard" disabled>
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                    <button class="btn-action" id="downloadNotesBtn" title="Download Markdown" disabled>
+                                        <i class="fa-solid fa-download"></i> Save .md
+                                    </button>
+                                    <button class="btn-action" id="printNotesBtn" title="Print Notes" disabled>
+                                        <i class="fa-solid fa-print"></i> Print
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body result-body">
+                                <div id="notesLoading" class="loading-state hidden">
+                                    <div class="loading-spinner"></div>
+                                    <p>Crafting high-yield study notes with Gemini...</p>
+                                </div>
+                                <div id="notesPlaceholder" class="empty-state">
+                                    <div class="empty-icon"><i class="fa-solid fa-book-bookmark"></i></div>
+                                    <h4>No Notes Generated Yet</h4>
+                                    <p>Enter a topic on the left and click <strong>Generate Study Notes</strong> to create comprehensive revision material.</p>
+                                </div>
+                                <div id="notesOutput" class="markdown-output hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= FEATURE 3: TOPIC SUMMARIZER ================= -->
+                <section id="panel-summarize" class="feature-panel">
+                    <div class="two-column-grid">
+                        <!-- Summarizer Form -->
+                        <div class="card form-card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-compress card-icon text-emerald"></i>
+                                    <h3>Text or Topic to Summarize</h3>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form id="summarizeForm">
+                                    <div class="form-group">
+                                        <label for="summarizeInput">Topic or Textbook Excerpt <span class="required">*</span></label>
+                                        <textarea id="summarizeInput" class="form-control" rows="7" placeholder="Paste an article, complex topic, textbook chapter, or research passage here..." required></textarea>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-6">
+                                            <label for="summarizeLength">Summary Length</label>
+                                            <select id="summarizeLength" class="form-control">
+                                                <option value="Quick 1-Minute Read (Short)">Quick 1-Minute Read (~100 words)</option>
+                                                <option value="Standard Summary (Medium)" selected>Standard Summary (~250 words)</option>
+                                                <option value="Comprehensive Deep Dive (Long)">Comprehensive Deep Dive (~450 words)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="summarizeFormat">Format</label>
+                                            <select id="summarizeFormat" class="form-control">
+                                                <option value="Bullet Points & Takeaways" selected>Bullet Points & Takeaways</option>
+                                                <option value="Executive Structured Paragraph">Executive Structured Paragraph</option>
+                                                <option value="Key Highlights + Actionable Insights">Key Highlights + Actionable Insights</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" id="summarizeBtn" class="btn btn-primary btn-block">
+                                        <i class="fa-solid fa-bolt"></i> Summarize Content
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Result Card -->
+                        <div class="card result-card">
+                            <div class="card-header result-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-file-shield card-icon text-emerald"></i>
+                                    <h3>Key Summary</h3>
+                                </div>
+                                <div class="action-buttons-group">
+                                    <button class="btn-action" id="copySummaryBtn" title="Copy to clipboard" disabled>
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body result-body">
+                                <div id="summaryLoading" class="loading-state hidden">
+                                    <div class="loading-spinner"></div>
+                                    <p>Distilling core concepts and key insights...</p>
+                                </div>
+                                <div id="summaryPlaceholder" class="empty-state">
+                                    <div class="empty-icon"><i class="fa-solid fa-file-contract"></i></div>
+                                    <h4>Ready to Summarize</h4>
+                                    <p>Paste text or write a topic on the left to extract the most critical points instantly.</p>
+                                </div>
+                                <div id="summaryOutput" class="markdown-output hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= FEATURE 4: MCQ GENERATOR ================= -->
+                <section id="panel-mcq" class="feature-panel">
+                    <div class="two-column-grid">
+                        <!-- MCQ Setup Form -->
+                        <div class="card form-card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-list-check card-icon text-blue"></i>
+                                    <h3>MCQ Generator Settings</h3>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form id="mcqForm">
+                                    <div class="form-group">
+                                        <label for="mcqTopic">Topic / Subject <span class="required">*</span></label>
+                                        <input type="text" id="mcqTopic" class="form-control" placeholder="e.g. World War II, Periodic Table, Object-Oriented Programming" required>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-6">
+                                            <label for="mcqCount">Number of Questions</label>
+                                            <select id="mcqCount" class="form-control">
+                                                <option value="3">3 Questions</option>
+                                                <option value="5" selected>5 Questions</option>
+                                                <option value="8">8 Questions</option>
+                                                <option value="10">10 Questions</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="mcqDifficulty">Difficulty</label>
+                                            <select id="mcqDifficulty" class="form-control">
+                                                <option value="Beginner / Easy">Beginner / Easy</option>
+                                                <option value="Intermediate / Standard" selected>Intermediate / Standard</option>
+                                                <option value="Challenging / Advanced">Challenging / Advanced</option>
+                                                <option value="Competitive Exam Level">Competitive Exam Level</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="quick-tags-container">
+                                        <span class="quick-tags-label">Quick Ideas:</span>
+                                        <div class="tags-list">
+                                            <button type="button" class="tag-pill" data-fill="mcqTopic" data-val="Chemical Bonding & Molecular Structure">Chemical Bonding</button>
+                                            <button type="button" class="tag-pill" data-fill="mcqTopic" data-val="Python Programming Basics">Python Basics</button>
+                                            <button type="button" class="tag-pill" data-fill="mcqTopic" data-val="Human Circulatory System">Circulatory System</button>
+                                            <button type="button" class="tag-pill" data-fill="mcqTopic" data-val="Macroeconomics: Inflation & Interest Rates">Inflation & Rates</button>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" id="generateMcqBtn" class="btn btn-primary btn-block">
+                                        <i class="fa-solid fa-list-ol"></i> Generate MCQs
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- MCQ Result Card -->
+                        <div class="card result-card">
+                            <div class="card-header result-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-clipboard-question card-icon text-blue"></i>
+                                    <h3>Multiple Choice Questions</h3>
+                                </div>
+                                <div class="action-buttons-group">
+                                    <button class="btn-action" id="copyMcqBtn" title="Copy MCQs" disabled>
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                    <button class="btn-action" id="downloadMcqBtn" title="Download MCQs" disabled>
+                                        <i class="fa-solid fa-download"></i> Save
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body result-body">
+                                <div id="mcqLoading" class="loading-state hidden">
+                                    <div class="loading-spinner"></div>
+                                    <p>Formulating questions, plausible distractors, and explanations...</p>
+                                </div>
+                                <div id="mcqPlaceholder" class="empty-state">
+                                    <div class="empty-icon"><i class="fa-solid fa-square-check"></i></div>
+                                    <h4>No MCQs Yet</h4>
+                                    <p>Select your topic, question count, and difficulty to generate practice questions.</p>
+                                </div>
+                                <div id="mcqOutput" class="markdown-output hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= FEATURE 5: PRACTICE QUIZ (INTERACTIVE) ================= -->
+                <section id="panel-quiz" class="feature-panel">
+                    <div class="quiz-container">
+                        <!-- Setup Card (Shown before quiz is active) -->
+                        <div id="quizSetupCard" class="card form-card quiz-setup-card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-gamepad card-icon text-purple"></i>
+                                    <h3>Interactive Practice Quiz Creator</h3>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form id="quizForm">
+                                    <div class="form-group">
+                                        <label for="quizTopic">Quiz Subject / Topic <span class="required">*</span></label>
+                                        <input type="text" id="quizTopic" class="form-control" placeholder="e.g. World Capitals, Thermodynamics, Linear Algebra, Cell Biology" required>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-6">
+                                            <label for="quizCount">Questions</label>
+                                            <select id="quizCount" class="form-control">
+                                                <option value="3">3 Questions (Quick Test)</option>
+                                                <option value="5" selected>5 Questions (Standard)</option>
+                                                <option value="8">8 Questions (Deep Practice)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="quizDifficulty">Difficulty</label>
+                                            <select id="quizDifficulty" class="form-control">
+                                                <option value="Beginner">Beginner</option>
+                                                <option value="Intermediate" selected>Intermediate</option>
+                                                <option value="Advanced">Advanced</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" id="startQuizBtn" class="btn btn-primary btn-block">
+                                        <i class="fa-solid fa-play"></i> Launch Practice Quiz
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Loading State -->
+                        <div id="quizLoading" class="card loading-card hidden">
+                            <div class="loading-state">
+                                <div class="loading-spinner"></div>
+                                <h4>Preparing Your Interactive Quiz...</h4>
+                                <p>Building questions, generating options, and writing explanations.</p>
+                            </div>
+                        </div>
+
+                        <!-- Active Interactive Quiz Card -->
+                        <div id="quizActiveCard" class="card quiz-active-card hidden">
+                            <div class="quiz-top-bar">
+                                <div class="quiz-meta">
+                                    <span class="quiz-tag" id="activeQuizTopic">Topic</span>
+                                    <span class="quiz-tag tag-purple" id="activeQuizDifficulty">Medium</span>
+                                </div>
+                                <div class="quiz-progress-text">
+                                    Question <span id="currentQuestionNum">1</span> of <span id="totalQuestionsNum">5</span>
+                                </div>
+                            </div>
+
+                            <!-- Visual Progress Bar -->
+                            <div class="progress-track">
+                                <div id="quizProgressBar" class="progress-bar-fill" style="width: 20%;"></div>
+                            </div>
+
+                            <!-- Question Content -->
+                            <div class="quiz-question-box">
+                                <h3 id="quizQuestionText" class="question-title">Question will appear here?</h3>
+                                
+                                <div id="quizOptionsList" class="options-grid">
+                                    <!-- Rendered dynamically by script.js -->
+                                </div>
+
+                                <!-- Explanation Box (Revealed after answering) -->
+                                <div id="quizExplanationBox" class="quiz-explanation hidden">
+                                    <div class="explanation-badge" id="explanationBadge">
+                                        <i class="fa-solid fa-circle-check"></i> Correct!
+                                    </div>
+                                    <p id="quizExplanationText">Explanation details...</p>
+                                </div>
+                            </div>
+
+                            <!-- Quiz Bottom Controls -->
+                            <div class="quiz-controls-row">
+                                <button type="button" id="quizPrevBtn" class="btn btn-secondary" disabled>
+                                    <i class="fa-solid fa-chevron-left"></i> Previous
+                                </button>
+                                <button type="button" id="quizNextBtn" class="btn btn-primary">
+                                    Next Question <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                                <button type="button" id="quizFinishBtn" class="btn btn-success hidden">
+                                    Complete & View Score <i class="fa-solid fa-flag-checkered"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Score Summary Card -->
+                        <div id="quizScoreCard" class="card quiz-score-card hidden">
+                            <div class="score-celebration">
+                                <div class="score-icon" id="scoreIcon">🏆</div>
+                                <h2 id="scoreTitle">Quiz Completed!</h2>
+                                <p id="scoreSubtitle">Great job testing your knowledge.</p>
+                                <div class="score-circle">
+                                    <span class="score-digits" id="scoreDisplay">5/5</span>
+                                    <span class="score-pct" id="scorePercent">100%</span>
+                                </div>
+                            </div>
+
+                            <!-- Review Questions List -->
+                            <div class="quiz-review-section">
+                                <h3>Question Breakdown & Explanations</h3>
+                                <div id="quizReviewList" class="review-items-container">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+
+                            <div class="score-actions">
+                                <button type="button" id="retakeQuizBtn" class="btn btn-secondary">
+                                    <i class="fa-solid fa-arrow-rotate-left"></i> Retake This Quiz
+                                </button>
+                                <button type="button" id="newQuizBtn" class="btn btn-primary">
+                                    <i class="fa-solid fa-plus"></i> Create New Quiz
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= FEATURE 6: SIMPLE EXPLANATION (ELI5) ================= -->
+                <section id="panel-explain" class="feature-panel">
+                    <div class="two-column-grid">
+                        <!-- Setup Form -->
+                        <div class="card form-card">
+                            <div class="card-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-wand-magic-sparkles card-icon text-amber"></i>
+                                    <h3>Concept to Simplify</h3>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <form id="explainForm">
+                                    <div class="form-group">
+                                        <label for="explainTopic">Difficult Topic or Idea <span class="required">*</span></label>
+                                        <input type="text" id="explainTopic" class="form-control" placeholder="e.g. Quantum Entanglement, How Bitcoin Works, Machine Learning, Inflation" required>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group col-6">
+                                            <label for="explainAudience">Target Audience</label>
+                                            <select id="explainAudience" class="form-control">
+                                                <option value="10-year-old child" selected>Explain Like I'm 10 (ELI5)</option>
+                                                <option value="Curious High School Student">High School Beginner</option>
+                                                <option value="Non-technical Adult">Non-Technical Adult</option>
+                                                <option value="Visual Thinker">Visual Thinker</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="explainTheme">Analogy Style</label>
+                                            <select id="explainTheme" class="form-control">
+                                                <option value="Everyday Life & Food" selected>Food, Pizza & Cooking</option>
+                                                <option value="Sports & Video Games">Sports & Video Games</option>
+                                                <option value="Theme Park / Schoolyard">Schoolyard / Playground</option>
+                                                <option value="Vehicles & Traffic">Cars & Traffic</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="quick-tags-container">
+                                        <span class="quick-tags-label">Try Explaining:</span>
+                                        <div class="tags-list">
+                                            <button type="button" class="tag-pill" data-fill="explainTopic" data-val="Quantum Superposition (Schrödinger's Cat)">Quantum Superposition</button>
+                                            <button type="button" class="tag-pill" data-fill="explainTopic" data-val="Blockchain and Cryptography">Blockchain</button>
+                                            <button type="button" class="tag-pill" data-fill="explainTopic" data-val="How Neural Networks and Deep Learning Learn">Neural Networks</button>
+                                            <button type="button" class="tag-pill" data-fill="explainTopic" data-val="Inflation and Monetary Policy">Inflation</button>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" id="explainBtn" class="btn btn-primary btn-block">
+                                        <i class="fa-solid fa-lightbulb"></i> Explain In Plain English
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Result Card -->
+                        <div class="card result-card">
+                            <div class="card-header result-header">
+                                <div class="card-title-group">
+                                    <i class="fa-solid fa-face-smile-wink card-icon text-amber"></i>
+                                    <h3>Intuitive Explanation</h3>
+                                </div>
+                                <div class="action-buttons-group">
+                                    <button class="btn-action" id="copyExplainBtn" title="Copy Explanation" disabled>
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body result-body">
+                                <div id="explainLoading" class="loading-state hidden">
+                                    <div class="loading-spinner"></div>
+                                    <p>Translating complex jargon into delightful real-world analogies...</p>
+                                </div>
+                                <div id="explainPlaceholder" class="empty-state">
+                                    <div class="empty-icon"><i class="fa-solid fa-brain"></i></div>
+                                    <h4>Make Any Hard Concept Simple</h4>
+                                    <p>Input a complicated topic on the left to receive a crystal-clear, jargon-free breakdown.</p>
+                                </div>
+                                <div id="explainOutput" class="markdown-output hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- API Key Configuration Modal -->
+    <div id="apiKeyModal" class="modal-backdrop hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-key"></i> Gemini API Key Setup</h3>
+                <button id="closeApiKeyModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>To power the AI responses, this application connects securely to the official Google Gemini API.</p>
+                
+                <div class="info-alert">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <div>
+                        <strong>Recommended:</strong> Add <code>GEMINI_API_KEY=your_key</code> inside your <code>.env</code> file in the project folder.
+                        <br>
+                        Don't have a key? Get one for free at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio <i class="fa-solid fa-arrow-up-right-from-square"></i></a>.
+                    </div>
+                </div>
+
+                <div class="form-group mt-3">
+                    <label for="modalApiKeyInput">Enter Gemini API Key:</label>
+                    <input type="password" id="modalApiKeyInput" class="form-control" placeholder="AIzaSy...">
+                    <small class="form-help">Your key is validated directly with Google and is never exposed to frontend users.</small>
+                </div>
+
+                <div id="modalKeyFeedback" class="feedback-msg hidden"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="cancelApiKeyModalBtn" class="btn btn-secondary">Cancel</button>
+                <button type="button" id="saveApiKeyModalBtn" class="btn btn-primary">
+                    <i class="fa-solid fa-check"></i> Verify & Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help & Guide Modal -->
+    <div id="helpModal" class="modal-backdrop hidden">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-graduation-cap"></i> AI Study Assistant Guide</h3>
+                <button id="closeHelpModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="guide-grid">
+                    <div class="guide-item">
+                        <h4><i class="fa-solid fa-comments text-indigo"></i> 1. AI Study Chat</h4>
+                        <p>Have an open conversation about any homework problem, concept, or essay prompt with smart context memory.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h4><i class="fa-solid fa-book-open text-indigo"></i> 2. Notes Generator</h4>
+                        <p>Generate Cornell notes or comprehensive exam sheets. Download as Markdown or print for revision.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h4><i class="fa-solid fa-compress text-emerald"></i> 3. Topic Summarizer</h4>
+                        <p>Paste dense textbook chapters or research papers to extract quick summaries and bullet points.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h4><i class="fa-solid fa-list-check text-blue"></i> 4. MCQ Generator</h4>
+                        <p>Create multiple-choice questions with full answer keys and rationales to prepare for tests.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h4><i class="fa-solid fa-circle-question text-purple"></i> 5. Practice Quiz</h4>
+                        <p>Take an interactive exam with immediate feedback, scoring, and step-by-step solutions.</p>
+                    </div>
+                    <div class="guide-item">
+                        <h4><i class="fa-solid fa-wand-magic-sparkles text-amber"></i> 6. Simple Explanation</h4>
+                        <p>Demystify complex topics using everyday analogies and simple language tailored for beginners.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="closeHelpModalFooterBtn" class="btn btn-primary">Got it, let's study!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Libraries: Marked for Markdown, Highlight.js for Syntax Highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Custom Application Script -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
